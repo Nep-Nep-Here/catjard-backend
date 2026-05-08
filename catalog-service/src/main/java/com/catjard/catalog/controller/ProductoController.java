@@ -52,7 +52,7 @@ public class ProductoController {
         return service.actualizar(id, dto);
     }
 
-    @PatchMapping("/{id}/stock")
+    @RequestMapping(value = "/{id}/stock", method = { RequestMethod.PATCH, RequestMethod.POST })
     @PreAuthorize("hasAnyRole('almacen','gerente')")
     public ProductoDTO actualizarStock(@PathVariable Long id, @RequestBody @Valid ActualizarStockDTO dto) {
         return service.actualizarStock(id, dto);

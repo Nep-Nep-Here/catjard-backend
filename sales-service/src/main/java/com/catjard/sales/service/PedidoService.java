@@ -2,6 +2,7 @@ package com.catjard.sales.service;
 
 import com.catjard.sales.dto.ActualizarPedidoDTO;
 import com.catjard.sales.dto.PedidoDTO;
+import com.catjard.sales.dto.VoucherDTO;
 import com.catjard.sales.mapper.PedidoMapper;
 import com.catjard.sales.model.Cotizacion;
 import com.catjard.sales.model.CotizacionItem;
@@ -64,7 +65,7 @@ public class PedidoService {
                 .subtotal(cot.getSubtotal())
                 .igv(cot.getIgv())
                 .total(cot.getTotal())
-                .estado(EstadoPedido.por_iniciar)
+                .estado(EstadoPedido.en_diseno)
                 .build();
 
         for (CotizacionItem ci : cot.getItems()) {
@@ -100,6 +101,15 @@ public class PedidoService {
         if (dto.voucherFecha() != null)            p.setVoucherFecha(dto.voucherFecha());
         if (dto.courier() != null)                 p.setCourier(dto.courier());
         if (dto.guiaRemision() != null)            p.setGuiaRemision(dto.guiaRemision());
+        return PedidoMapper.toDTO(p);
+    }
+
+    @Transactional
+    public PedidoDTO subirVoucher(Long id, VoucherDTO dto) {
+        Pedido p = repo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Pedido no encontrado: " + id));
+        p.setVoucherUrl(dto.voucherUrl());
+        p.setVoucherFecha(LocalDate.now());
         return PedidoMapper.toDTO(p);
     }
 

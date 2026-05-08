@@ -2,6 +2,7 @@ package com.catjard.sales.controller;
 
 import com.catjard.sales.dto.ActualizarPedidoDTO;
 import com.catjard.sales.dto.PedidoDTO;
+import com.catjard.sales.dto.VoucherDTO;
 import com.catjard.sales.service.PedidoService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -50,6 +51,12 @@ public class PedidoController {
     @PreAuthorize("hasAnyRole('vendedor','gerente','almacen','produccion')")
     public PedidoDTO actualizarPorCodigo(@PathVariable String codigo, @Valid @RequestBody ActualizarPedidoDTO dto) {
         return service.actualizarPorCodigo(codigo, dto);
+    }
+
+    @PostMapping("/{id}/voucher")
+    @PreAuthorize("hasAnyRole('cliente','vendedor','gerente','almacen','produccion')")
+    public PedidoDTO subirVoucher(@PathVariable Long id, @Valid @RequestBody VoucherDTO dto) {
+        return service.subirVoucher(id, dto);
     }
 
     @DeleteMapping("/{id}")
