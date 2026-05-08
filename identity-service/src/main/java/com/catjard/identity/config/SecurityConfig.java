@@ -15,7 +15,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 // MECANISMO DE SEGURIDAD: configuración central de Spring Security para identity-service.
 // Aquí se definen: filtro JWT, política de sesiones, rutas públicas, encoder BCrypt y
-// la activación de seguridad a nivel de método (@PreAuthorize, @Secured).
+// la activación de seguridad a nivel de método (@PreAuthorize, @Secured). ss
 @Configuration
 @EnableMethodSecurity   // habilita autorización por método (@PreAuthorize, hasRole...)
 @RequiredArgsConstructor

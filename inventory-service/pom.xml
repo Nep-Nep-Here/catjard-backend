@@ -128,6 +128,26 @@
                     </excludes>
                 </configuration>
             </plugin>
+            <!-- Expone propiedades con la ruta de cada .jar de dependencia para usarlas en argLine. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>properties</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- Carga Mockito como Java agent explicito para evitar self-attach (deprecado en JDK futuro). -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>-javaagent:${org.mockito:mockito-core:jar} -Xshare:off</argLine>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 </project>
