@@ -12,6 +12,10 @@ import java.util.Base64;
 import java.util.Date;
 import java.util.Map;
 
+// MECANISMO DE SEGURIDAD: JWT (JSON Web Token)
+// Servicio responsable de emitir y validar los tokens que autentican a los usuarios
+// en todos los microservicios. Firma con HMAC-SHA usando la clave configurada en
+// jwt.secret (application.properties).
 @Service
 public class JwtService {
 
@@ -20,10 +24,12 @@ public class JwtService {
 
     public JwtService(@Value("${jwt.secret}") String secret,
                       @Value("${jwt.expiration-ms}") long expirationMs) {
+        // Clave simétrica HMAC reconstruida desde el secret base64.
         this.key = Keys.hmacShaKeyFor(Base64.getDecoder().decode(secret));
         this.expirationMs = expirationMs;
     }
 
+    // Emite un JWT firmado con los claims del usuario (id, rol, nombre) y vencimiento.
     public String generate(Usuario u) {
         var now = new Date();
         var exp = new Date(now.getTime() + expirationMs);
@@ -36,10 +42,11 @@ public class JwtService {
                 ))
                 .issuedAt(now)
                 .expiration(exp)
-                .signWith(key)
+                .signWith(key) // firma HMAC para evitar manipulación del token
                 .compact();
     }
 
+    // Verifica firma y vencimiento. Si el token fue alterado o expiró, lanza JwtException.
     public Claims parse(String token) {
         return Jwts.parser()
                 .verifyWith(key)

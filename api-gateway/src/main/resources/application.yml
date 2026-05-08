@@ -9,15 +9,19 @@ spring:
           discovery:
             locator:
               enabled: false
+          # MECANISMO DE SEGURIDAD: política CORS centralizada en el gateway.
+          # Solo se aceptan peticiones desde el origen del frontend (localhost:5173).
+          # Esto bloquea el envío de credenciales desde dominios no autorizados (anti-CSRF
+          # cross-origin) y reduce la superficie de ataque de la API.
           globalcors:
             cors-configurations:
               '[/**]':
                 allowed-origins:
-                  - "http://localhost:5173"
+                  - "http://localhost:5173"   # único origen permitido (frontend Vite)
                 allowed-methods: ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"]
                 allowed-headers: "*"
-                allow-credentials: true
-                max-age: 3600
+                allow-credentials: true        # permite enviar el header Authorization
+                max-age: 3600                  # cachea el preflight 1 h
           routes:
             # identity-service
             - id: identity-auth

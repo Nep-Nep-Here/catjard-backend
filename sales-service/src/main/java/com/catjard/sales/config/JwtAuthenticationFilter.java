@@ -21,12 +21,17 @@ import java.io.IOException;
 import java.util.Base64;
 import java.util.List;
 
+// MECANISMO DE SEGURIDAD: validación de JWT en sales-service.
+// Cada microservicio aguas abajo del gateway revalida el JWT con la MISMA clave HMAC
+// que identity-service (compartida vía jwt.secret). Esto evita que un atacante que
+// llegue al servicio sin pasar por el gateway pueda saltarse la autenticación.
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final SecretKey key;
 
     public JwtAuthenticationFilter(@Value("${jwt.secret}") String secret) {
+        // Misma clave HMAC que identity-service → permite verificar tokens emitidos allá.
         this.key = Keys.hmacShaKeyFor(Base64.getDecoder().decode(secret));
     }
 
@@ -38,6 +43,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (header != null && header.startsWith("Bearer ")) {
             String token = header.substring(7);
             try {
+                // Verifica firma y vencimiento del JWT en cada request.
                 Claims claims = Jwts.parser()
                         .verifyWith(key)
                         .build()
@@ -45,11 +51,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         .getPayload();
                 String email = claims.getSubject();
                 String role = claims.get("role", String.class);
+                // Convierte el rol del JWT en authority Spring Security (ROLE_xxx).
                 var authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role));
                 var auth = new UsernamePasswordAuthenticationToken(email, null, authorities);
                 auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(req));
                 SecurityContextHolder.getContext().setAuthentication(auth);
             } catch (JwtException ignored) {
+                // Token inválido/expirado: queda no autenticado y SecurityConfig responde 401/403.
             }
         }
         chain.doFilter(req, res);

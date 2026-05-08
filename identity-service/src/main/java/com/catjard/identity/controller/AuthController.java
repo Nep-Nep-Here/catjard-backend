@@ -18,11 +18,17 @@ public class AuthController {
 
     private final AuthService service;
 
+    // MECANISMO DE SEGURIDAD: validación de entrada con @Valid (Jakarta Bean Validation).
+    // Las anotaciones @NotBlank/@Email/@Size en LoginRequest se aplican antes de entrar
+    // al servicio. Si el payload no cumple, Spring devuelve 400 Bad Request automáticamente.
     @PostMapping("/login")
     public LoginResponse login(@RequestBody @Valid LoginRequest req) {
         return service.login(req);
     }
 
+    // MECANISMO DE SEGURIDAD: validación de entrada con @Valid (ver RegistroDTO).
+    // Garantiza email válido, password mínimo 6 caracteres y RUC de 11 dígitos antes
+    // de tocar la base de datos.
     @PostMapping("/registro")
     public ResponseEntity<UsuarioDTO> registro(@RequestBody @Valid RegistroDTO dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.registrar(dto));

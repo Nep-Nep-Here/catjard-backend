@@ -13,8 +13,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+// MECANISMO DE SEGURIDAD: configuración central de Spring Security para identity-service.
+// Aquí se definen: filtro JWT, política de sesiones, rutas públicas, encoder BCrypt y
+// la activación de seguridad a nivel de método (@PreAuthorize, @Secured).
 @Configuration
-@EnableMethodSecurity
+@EnableMethodSecurity   // habilita autorización por método (@PreAuthorize, hasRole...)
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -23,9 +26,13 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+                // CSRF desactivado: se permite porque la API es REST stateless (no usa cookies de sesión).
                 .csrf(csrf -> csrf.disable())
+                // Sesiones STATELESS: cada request se autentica solo con el JWT, no se guarda HttpSession.
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        // Endpoints públicos: login y registro no requieren JWT.
+                        // Swagger y actuator se exponen para documentación/monitoreo en este proyecto.
                         .requestMatchers(
                                 "/api/auth/login",
                                 "/api/auth/registro",
@@ -34,12 +41,17 @@ public class SecurityConfig {
                                 "/swagger-ui.html",
                                 "/actuator/**"
                         ).permitAll()
+                        // El resto de rutas requiere un JWT válido (validado por jwtFilter).
                         .anyRequest().authenticated()
                 )
+                // Inserta el filtro JWT antes del de usuario/contraseña por defecto.
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 
+    // MECANISMO DE SEGURIDAD: BCrypt como algoritmo de hash de contraseñas.
+    // BCrypt incluye sal aleatoria por hash y es resistente a fuerza bruta por su costo
+    // computacional (work factor por defecto = 10).
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();

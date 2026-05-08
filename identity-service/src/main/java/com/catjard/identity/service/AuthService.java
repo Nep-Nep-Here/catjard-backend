@@ -19,21 +19,27 @@ public class AuthService {
     private final JwtService jwt;
     private final UsuarioMapper mapper;
 
+    // MECANISMO DE SEGURIDAD: BCrypt (verificación de contraseña) + emisión de JWT.
+    // Compara el password en claro contra el hash BCrypt almacenado en BD; si coincide
+    // emite un JWT firmado para autenticar las próximas requests.
     public LoginResponse login(LoginRequest req) {
         Usuario u = repo.findByEmailIgnoreCase(req.email())
                 .orElseThrow(() -> new BadCredentialsException("Credenciales inválidas. Verifica tu correo y contraseña."));
+        // BCrypt compara con el hash de forma segura (constant-time, anti timing-attack).
         if (!encoder.matches(req.password(), u.getPassword())) {
             throw new BadCredentialsException("Credenciales inválidas. Verifica tu correo y contraseña.");
         }
         return new LoginResponse(jwt.generate(u), jwt.getExpirationMs(), mapper.toDTO(u));
     }
 
+    // MECANISMO DE SEGURIDAD: hash BCrypt al guardar la contraseña.
+    // El password en claro NUNCA se persiste; solo se almacena su hash con sal aleatoria.
     @Transactional
     public UsuarioDTO registrar(RegistroDTO dto) {
         if (repo.existsByEmailIgnoreCase(dto.email())) {
             throw new IllegalArgumentException("Ya existe un usuario con ese email.");
         }
-        Usuario nuevo = mapper.fromRegistro(dto, encoder.encode(dto.password()));
+        Usuario nuevo = mapper.fromRegistro(dto, encoder.encode(dto.password())); // hash BCrypt
         return mapper.toDTO(repo.save(nuevo));
     }
 
