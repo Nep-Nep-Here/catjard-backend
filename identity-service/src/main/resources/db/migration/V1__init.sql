@@ -15,3 +15,6 @@ CREATE TABLE usuarios (
 );
 
 CREATE INDEX idx_usuarios_rol ON usuarios(rol);
+
+
+/* se tomo con flayway  para la migracion */
