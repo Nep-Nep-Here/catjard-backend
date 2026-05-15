@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import javax.crypto.SecretKey;
 import java.util.Base64;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
 
 // MECANISMO DE SEGURIDAD: JWT (JSON Web Token)
@@ -29,17 +30,18 @@ public class JwtService {
         this.expirationMs = expirationMs;
     }
 
-    // Emite un JWT firmado con los claims del usuario (id, rol, nombre) y vencimiento.
+    // Emite un JWT firmado con los claims del usuario (id, rol, nombre, clienteId si aplica) y vencimiento.
     public String generate(Usuario u) {
         var now = new Date();
         var exp = new Date(now.getTime() + expirationMs);
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("userId", u.getId());
+        claims.put("role", u.getRol().name());
+        claims.put("name", u.getNombre());
+        if (u.getClienteId() != null) claims.put("clienteId", u.getClienteId());
         return Jwts.builder()
                 .subject(u.getEmail())
-                .claims(Map.of(
-                        "userId", u.getId(),
-                        "role", u.getRol().name(),
-                        "name", u.getNombre()
-                ))
+                .claims(claims)
                 .issuedAt(now)
                 .expiration(exp)
                 .signWith(key) // firma HMAC para evitar manipulación del token

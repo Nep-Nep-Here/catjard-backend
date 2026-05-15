@@ -21,6 +21,7 @@ public class ProductoMapper {
                 p.getStock(),
                 p.getStockMinimo(),
                 p.getDescripcion(),
+                p.getImagenUrl(),
                 List.copyOf(p.getTecnicas())
         );
     }
@@ -34,6 +35,7 @@ public class ProductoMapper {
                 .stock(dto.stock())
                 .stockMinimo(dto.stockMinimo())
                 .descripcion(dto.descripcion())
+                .imagenUrl(dto.imagenUrl())
                 .tecnicas(new HashSet<>(dto.tecnicas()))
                 .build();
     }

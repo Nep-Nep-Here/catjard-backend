@@ -56,7 +56,7 @@ class AuthServiceTest {
                 .build();
         usuarioDTOMock = new UsuarioDTO(
                 1L, "cliente@empresa.com", "cliente", "Lucia Montoya",
-                null, null, null, null, null
+                null, null, null, null, null, null
         );
     }
 
@@ -121,7 +121,7 @@ class AuthServiceTest {
 
         var dtoSalida = new UsuarioDTO(
                 7L, "nuevo@empresa.com", "cliente", "Carlos Diaz",
-                "Acme S.A.C.", "20512345671", "+51 999111222", "Av. Demo 123", null
+                "Acme S.A.C.", "20512345671", "+51 999111222", "Av. Demo 123", null, null
         );
         when(mapper.toDTO(nuevo)).thenReturn(dtoSalida);
 

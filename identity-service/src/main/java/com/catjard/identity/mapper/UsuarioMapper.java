@@ -20,7 +20,8 @@ public class UsuarioMapper {
                 u.getRuc(),
                 u.getTelefono(),
                 u.getDireccion(),
-                u.getCargo()
+                u.getCargo(),
+                u.getClienteId()
         );
     }
 
@@ -35,6 +36,7 @@ public class UsuarioMapper {
                 .telefono(dto.telefono())
                 .direccion(dto.direccion())
                 .cargo(dto.cargo())
+                .clienteId(dto.clienteId())
                 .build();
     }
 

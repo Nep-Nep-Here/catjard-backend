@@ -15,5 +15,6 @@ public record CrearUsuarioDTO(
         @Size(min = 11, max = 11) String ruc,
         String telefono,
         String direccion,
-        String cargo
+        String cargo,
+        Long clienteId
 ) {}

@@ -1,9 +1,11 @@
 package com.catjard.identity.service;
 
 import com.catjard.identity.dto.ActualizarUsuarioDTO;
+import com.catjard.identity.dto.CrearClienteUsuarioDTO;
 import com.catjard.identity.dto.CrearUsuarioDTO;
 import com.catjard.identity.dto.UsuarioDTO;
 import com.catjard.identity.mapper.UsuarioMapper;
+import com.catjard.identity.model.Rol;
 import com.catjard.identity.model.Usuario;
 import com.catjard.identity.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +38,25 @@ public class UsuarioService {
             throw new IllegalArgumentException("Ya existe un usuario con ese email.");
         }
         Usuario u = mapper.fromCrear(dto, encoder.encode(dto.password()));
+        return mapper.toDTO(repo.save(u));
+    }
+
+    @Transactional
+    public UsuarioDTO crearClienteDesdeLead(CrearClienteUsuarioDTO dto) {
+        if (repo.existsByEmailIgnoreCase(dto.email())) {
+            throw new IllegalArgumentException("Ya existe un usuario con ese email.");
+        }
+        Usuario u = Usuario.builder()
+                .email(dto.email())
+                .password(encoder.encode(dto.password()))
+                .rol(Rol.cliente)
+                .nombre(dto.nombre())
+                .empresa(dto.empresa())
+                .ruc(dto.ruc())
+                .telefono(dto.telefono())
+                .direccion(dto.direccion())
+                .clienteId(dto.clienteId())
+                .build();
         return mapper.toDTO(repo.save(u));
     }
 

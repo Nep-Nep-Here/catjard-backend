@@ -9,5 +9,6 @@ public record UsuarioDTO(
         String ruc,
         String telefono,
         String direccion,
-        String cargo
+        String cargo,
+        Long clienteId
 ) {}

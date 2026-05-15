@@ -1,6 +1,8 @@
 package com.catjard.crm.service;
 
+import com.catjard.crm.client.IdentityClient;
 import com.catjard.crm.dto.ActualizarLeadDTO;
+import com.catjard.crm.dto.ConversionResultDTO;
 import com.catjard.crm.dto.ConvertirLeadDTO;
 import com.catjard.crm.dto.CrearLeadDTO;
 import com.catjard.crm.dto.LeadDTO;
@@ -11,19 +13,28 @@ import com.catjard.crm.model.Lead;
 import com.catjard.crm.repository.ClienteCRMRepository;
 import com.catjard.crm.repository.LeadRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class LeadService {
 
+    private static final SecureRandom RNG = new SecureRandom();
+    private static final String PASS_ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789";
+
     private final LeadRepository leadRepo;
     private final ClienteCRMRepository clienteRepo;
+    private final IdentityClient identityClient;
 
     @Transactional(readOnly = true)
     public List<LeadDTO> listar(Optional<String> estado) {
@@ -86,7 +97,7 @@ public class LeadService {
     }
 
     @Transactional
-    public Long convertirEnCliente(Long leadId, ConvertirLeadDTO dto) {
+    public ConversionResultDTO convertirEnCliente(Long leadId, ConvertirLeadDTO dto) {
         Lead lead = leadRepo.findById(leadId)
                 .orElseThrow(() -> new IllegalArgumentException("Lead no encontrado: " + leadId));
 
@@ -113,7 +124,48 @@ public class LeadService {
 
         ClienteCRM saved = clienteRepo.save(cliente);
         lead.setEstado(EstadoLead.convertido);
-        return saved.getId();
+
+        // Crear usuario en identity-service para que el cliente pueda loguearse.
+        String passwordTemporal = generarPasswordTemporal();
+        boolean cuentaCreada = false;
+        String mensaje;
+        try {
+            Map<String, Object> body = new HashMap<>();
+            body.put("email", lead.getEmail());
+            body.put("password", passwordTemporal);
+            body.put("nombre", lead.getNombre());
+            body.put("empresa", dto.razonSocial());
+            body.put("ruc", dto.ruc());
+            body.put("telefono", lead.getTelefono());
+            body.put("direccion", dto.direccion());
+            body.put("clienteId", saved.getId());
+            identityClient.crearClienteDesdeLead(body);
+            cuentaCreada = true;
+            mensaje = "Cuenta creada. Comparte estas credenciales con el cliente; la contraseña no se vuelve a mostrar.";
+        } catch (Exception ex) {
+            log.warn("No se pudo crear cuenta de acceso para lead {}: {}", leadId, ex.getMessage());
+            passwordTemporal = null;
+            mensaje = "Cliente CRM creado, pero no se pudo crear su cuenta de acceso automáticamente: "
+                    + ex.getMessage() + ". Crea el usuario manualmente desde Gerencia → Usuarios.";
+        }
+
+        return new ConversionResultDTO(
+                leadId,
+                saved.getId(),
+                lead.getEmail(),
+                passwordTemporal,
+                cuentaCreada,
+                mensaje
+        );
+    }
+
+    private String generarPasswordTemporal() {
+        StringBuilder sb = new StringBuilder(10);
+        for (int i = 0; i < 10; i++) {
+            sb.append(PASS_ALPHABET.charAt(RNG.nextInt(PASS_ALPHABET.length())));
+            if (i == 3 || i == 6) sb.append('-');
+        }
+        return sb.toString();
     }
 
     private EstadoLead parseEstado(String s) {

@@ -74,6 +74,9 @@ public class ProductoService {
         if (dto.stock() != null) p.setStock(dto.stock());
         if (dto.stockMinimo() != null) p.setStockMinimo(dto.stockMinimo());
         if (dto.descripcion() != null) p.setDescripcion(dto.descripcion());
+        if (dto.imagenUrl() != null) {
+            p.setImagenUrl(dto.imagenUrl().isBlank() ? null : dto.imagenUrl());
+        }
         if (dto.tecnicas() != null) {
             validarTecnicas(dto.tecnicas());
             p.setTecnicas(new HashSet<>(dto.tecnicas()));

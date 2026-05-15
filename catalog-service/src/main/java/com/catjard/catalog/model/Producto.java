@@ -43,6 +43,9 @@ public class Producto {
     @Column(columnDefinition = "TEXT")
     private String descripcion;
 
+    @Column(name = "imagen_url", columnDefinition = "TEXT")
+    private String imagenUrl;
+
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(
             name = "producto_tecnicas",

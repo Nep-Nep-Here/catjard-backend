@@ -45,6 +45,9 @@ public class Usuario {
     @Column(length = 100)
     private String cargo;
 
+    @Column(name = "cliente_id")
+    private Long clienteId;
+
     @Column(name = "fecha_creacion", nullable = false, updatable = false)
     private LocalDateTime fechaCreacion;
 

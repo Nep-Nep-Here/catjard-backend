@@ -14,5 +14,6 @@ public record CrearProductoDTO(
         @NotNull @Min(0) Integer stock,
         @NotNull @Min(0) Integer stockMinimo,
         String descripcion,
+        String imagenUrl,
         @NotEmpty Set<String> tecnicas
 ) {}

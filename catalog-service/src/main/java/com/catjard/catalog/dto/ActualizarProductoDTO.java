@@ -13,5 +13,6 @@ public record ActualizarProductoDTO(
         Integer stock,
         Integer stockMinimo,
         String descripcion,
+        String imagenUrl,
         Set<String> tecnicas
 ) {}

@@ -1,6 +1,7 @@
 package com.catjard.identity.controller;
 
 import com.catjard.identity.dto.ActualizarUsuarioDTO;
+import com.catjard.identity.dto.CrearClienteUsuarioDTO;
 import com.catjard.identity.dto.CrearUsuarioDTO;
 import com.catjard.identity.dto.UsuarioDTO;
 import com.catjard.identity.service.UsuarioService;
@@ -36,6 +37,14 @@ public class UsuarioController {
     @PostMapping
     public ResponseEntity<UsuarioDTO> crear(@RequestBody @Valid CrearUsuarioDTO dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.crear(dto));
+    }
+
+    // Endpoint usado por crm-service al convertir un lead en cliente.
+    // Solo crea usuarios con rol=cliente y asocia el clienteId del CRM.
+    @PostMapping("/cliente-from-lead")
+    @PreAuthorize("hasAnyRole('vendedor','gerente')")
+    public ResponseEntity<UsuarioDTO> crearClienteDesdeLead(@RequestBody @Valid CrearClienteUsuarioDTO dto) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.crearClienteDesdeLead(dto));
     }
 
     @PatchMapping("/{id}")

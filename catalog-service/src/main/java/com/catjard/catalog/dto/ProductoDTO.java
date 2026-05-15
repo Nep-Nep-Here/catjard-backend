@@ -12,5 +12,6 @@ public record ProductoDTO(
         Integer stock,
         Integer stockMinimo,
         String descripcion,
+        String imagenUrl,
         List<String> tecnicas
 ) {}

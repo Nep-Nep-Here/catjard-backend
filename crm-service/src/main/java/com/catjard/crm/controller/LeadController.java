@@ -1,6 +1,7 @@
 package com.catjard.crm.controller;
 
 import com.catjard.crm.dto.ActualizarLeadDTO;
+import com.catjard.crm.dto.ConversionResultDTO;
 import com.catjard.crm.dto.ConvertirLeadDTO;
 import com.catjard.crm.dto.CrearLeadDTO;
 import com.catjard.crm.dto.LeadDTO;
@@ -14,7 +15,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 @Tag(name = "Leads", description = "Leads del CRM")
@@ -57,10 +57,9 @@ public class LeadController {
 
     @PostMapping("/{id}/convertir")
     @PreAuthorize("hasAnyRole('vendedor','gerente')")
-    public ResponseEntity<Map<String, Object>> convertir(@PathVariable Long id,
+    public ResponseEntity<ConversionResultDTO> convertir(@PathVariable Long id,
                                                          @Valid @RequestBody ConvertirLeadDTO dto) {
-        Long clienteId = service.convertirEnCliente(id, dto);
-        return ResponseEntity.ok(Map.of("clienteId", clienteId, "leadId", id));
+        return ResponseEntity.ok(service.convertirEnCliente(id, dto));
     }
 
     @DeleteMapping("/{id}")
