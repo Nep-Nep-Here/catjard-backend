@@ -1,0 +1,17 @@
+# Secretos / entorno (NUNCA versionar)
+.env
+.env.*
+!.env.example
+
+# Build Maven
+target/
+*/target/
+**/target/
+
+# IDE
+.idea/
+*.iml
+*.iws
+
+# Logs / sistema
+*.log

@@ -1,0 +1,129 @@
+name: catjard
+
+# Config común a los microservicios de negocio (datasource user/pass + JWT + Eureka).
+x-spring-env: &spring-env
+  SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
+  SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+  JWT_SECRET: ${JWT_SECRET}
+  EUREKA_URI: http://eureka-server:8761/eureka/
+
+x-svc-depends: &svc-depends
+  postgres:
+    condition: service_healthy
+  eureka-server:
+    condition: service_started
+
+services:
+  # ---------- Base de datos (1 instancia, 6 BD vía init-databases.sql) ----------
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init-databases.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks: [catjard]
+    restart: unless-stopped
+
+  # ---------- Service discovery ----------
+  eureka-server:
+    build: ./eureka-server
+    ports:
+      - "8761:8761"   # dashboard de Eureka
+    networks: [catjard]
+    restart: unless-stopped
+
+  # ---------- API Gateway (único punto de entrada) ----------
+  api-gateway:
+    build: ./api-gateway
+    environment:
+      EUREKA_URI: http://eureka-server:8761/eureka/
+      FRONT_ORIGIN: ${FRONT_ORIGIN:-http://localhost:5173}
+    ports:
+      - "8080:8080"
+    depends_on:
+      eureka-server:
+        condition: service_started
+    networks: [catjard]
+    restart: unless-stopped
+
+  # ---------- Microservicios de negocio ----------
+  identity-service:
+    build: ./identity-service
+    environment:
+      <<: *spring-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/catjard_identity
+    depends_on: *svc-depends
+    networks: [catjard]
+    restart: unless-stopped
+
+  catalog-service:
+    build: ./catalog-service
+    environment:
+      <<: *spring-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/catjard_catalog
+    depends_on: *svc-depends
+    networks: [catjard]
+    restart: unless-stopped
+
+  crm-service:
+    build: ./crm-service
+    environment:
+      <<: *spring-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/catjard_crm
+    depends_on: *svc-depends
+    networks: [catjard]
+    restart: unless-stopped
+
+  sales-service:
+    build: ./sales-service
+    environment:
+      <<: *spring-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/catjard_sales
+    depends_on: *svc-depends
+    networks: [catjard]
+    restart: unless-stopped
+
+  inventory-service:
+    build: ./inventory-service
+    environment:
+      <<: *spring-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/catjard_inventory
+    depends_on: *svc-depends
+    networks: [catjard]
+    restart: unless-stopped
+
+  operations-service:
+    build: ./operations-service
+    environment:
+      <<: *spring-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/catjard_operations
+    depends_on: *svc-depends
+    networks: [catjard]
+    restart: unless-stopped
+
+  # ---------- Frontend (Vite build -> nginx) ----------
+  frontend:
+    build:
+      context: ../../datos
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080/api}
+    ports:
+      - "5173:80"
+    depends_on:
+      - api-gateway
+    networks: [catjard]
+    restart: unless-stopped
+
+networks:
+  catjard:
+    driver: bridge
+
+volumes:
+  pgdata:

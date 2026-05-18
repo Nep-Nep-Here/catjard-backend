@@ -1,0 +1,69 @@
+# Override de PRODUCCIÓN (Droplet 4 GB, acceso por IP/HTTP).
+# Uso en el servidor:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#
+# Cambios vs. dev:
+#  - frontend en puerto 80 (http://IP), API relativa /api (nginx hace proxy al gateway)
+#  - eureka y gateway SIN puerto público (solo red interna)
+#  - JVMs con heap recortado + mem_limit para caber en 4 GB
+#  - contexto del front = ../frontend (layout del servidor: backend/ y frontend/ hermanos)
+
+# Recorte de memoria común a las 8 JVMs (Spring Boot + Eureka + Gateway).
+x-jvm-tuning: &jvm-tuning
+  JAVA_TOOL_OPTIONS: "-Xmx200m -XX:MaxMetaspaceSize=96m -Xss512k -XX:+UseSerialGC -XX:TieredStopAtLevel=1"
+
+services:
+  postgres:
+    mem_limit: 384m
+
+  eureka-server:
+    environment:
+      <<: *jvm-tuning
+    ports: !override []   # sin exposición pública (uso interno)
+    mem_limit: 420m
+
+  api-gateway:
+    environment:
+      <<: *jvm-tuning
+      FRONT_ORIGIN: "http://${SERVER_IP}"
+    ports: !override []   # nginx hace proxy interno; no se expone al exterior
+    mem_limit: 420m
+
+  identity-service:
+    environment:
+      <<: *jvm-tuning
+    mem_limit: 420m
+
+  catalog-service:
+    environment:
+      <<: *jvm-tuning
+    mem_limit: 420m
+
+  crm-service:
+    environment:
+      <<: *jvm-tuning
+    mem_limit: 420m
+
+  sales-service:
+    environment:
+      <<: *jvm-tuning
+    mem_limit: 420m
+
+  inventory-service:
+    environment:
+      <<: *jvm-tuning
+    mem_limit: 420m
+
+  operations-service:
+    environment:
+      <<: *jvm-tuning
+    mem_limit: 420m
+
+  frontend:
+    build:
+      context: ../frontend          # en el servidor: ~/catjard/frontend
+      args:
+        VITE_API_BASE_URL: /api     # relativo => nginx proxya al gateway
+    ports: !override
+      - "80:80"
+    mem_limit: 64m
