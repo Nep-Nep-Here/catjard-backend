@@ -4,12 +4,15 @@ import com.catjard.sales.dto.ActualizarCotizacionDTO;
 import com.catjard.sales.dto.CotizacionDTO;
 import com.catjard.sales.dto.CrearCotizacionDTO;
 import com.catjard.sales.dto.ItemDTO;
+import com.catjard.sales.client.MarcarHitoBody;
+import com.catjard.sales.client.OperationsTrackingClient;
 import com.catjard.sales.mapper.CotizacionMapper;
 import com.catjard.sales.model.Cotizacion;
 import com.catjard.sales.model.CotizacionItem;
 import com.catjard.sales.model.EstadoCotizacion;
 import com.catjard.sales.repository.CotizacionRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,12 +20,14 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CotizacionService {
 
     private final CotizacionRepository repo;
     private final PedidoService pedidoService;
+    private final OperationsTrackingClient operationsTracking;
 
     @Transactional(readOnly = true)
     public List<CotizacionDTO> listar(Optional<String> estado, Optional<Long> clienteId) {
@@ -126,6 +131,14 @@ public class CotizacionService {
         // generar pedido vinculado
         String pedidoCodigo = pedidoService.crearDesdeCotizacion(cot);
         cot.setPedidoCodigo(pedidoCodigo);
+
+        // marcar el hito de tracking "cotizacion_aprobada" (best-effort)
+        try {
+            operationsTracking.marcarHito(pedidoCodigo,
+                    new MarcarHitoBody("cotizacion_aprobada", LocalDate.now(), "Cotización aprobada"));
+        } catch (Exception ex) {
+            log.warn("Hito cotizacion_aprobada no marcado para {}: {}", pedidoCodigo, ex.getMessage());
+        }
 
         return CotizacionMapper.toDTO(cot);
     }

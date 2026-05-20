@@ -51,9 +51,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         .getPayload();
                 String email = claims.getSubject();
                 String role = claims.get("role", String.class);
+                String name = claims.get("name", String.class);
                 // Convierte el rol del JWT en authority Spring Security (ROLE_xxx).
                 var authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role));
-                var auth = new UsernamePasswordAuthenticationToken(email, null, authorities);
+                // Guardamos el nombre del usuario en `credentials` (que normalmente
+                // va null en JWT) para que los services lo lean sin re-parsear el token.
+                var auth = new UsernamePasswordAuthenticationToken(email, name, authorities);
                 auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(req));
                 SecurityContextHolder.getContext().setAuthentication(auth);
             } catch (JwtException ignored) {

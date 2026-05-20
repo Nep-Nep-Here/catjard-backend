@@ -9,6 +9,7 @@ import com.catjard.operations.model.Despacho;
 import com.catjard.operations.model.HitoTracking;
 import com.catjard.operations.repository.DespachoRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class DespachoService {
@@ -45,30 +47,36 @@ public class DespachoService {
         if (!COURIERS_VALIDOS.contains(dto.courier())) {
             throw new IllegalArgumentException("Courier no valido. Permitidos: " + COURIERS_VALIDOS);
         }
-        if (repo.existsByPedidoCodigo(dto.pedidoCodigo())) {
-            throw new IllegalStateException("Pedido ya tiene despacho registrado: " + dto.pedidoCodigo());
-        }
 
-        Despacho d = Despacho.builder()
-                .pedidoCodigo(dto.pedidoCodigo())
-                .courier(dto.courier())
-                .guiaRemision(dto.guiaRemision())
-                .fechaDespacho(dto.fechaDespacho() != null ? dto.fechaDespacho() : LocalDate.now())
-                .direccionEntrega(dto.direccionEntrega())
-                .notas(dto.notas())
-                .build();
-        Despacho saved = repo.save(d);
+        // Idempotente: si el pedido ya tiene despacho, no falla; reutiliza el
+        // existente y vuelve a sincronizar el estado del pedido (por si la 1a
+        // vez el PATCH a sales fallo y quedo pegado en "listo").
+        Despacho saved = repo.findByPedidoCodigo(dto.pedidoCodigo())
+                .orElseGet(() -> repo.save(Despacho.builder()
+                        .pedidoCodigo(dto.pedidoCodigo())
+                        .courier(dto.courier())
+                        .guiaRemision(dto.guiaRemision())
+                        .fechaDespacho(dto.fechaDespacho() != null ? dto.fechaDespacho() : LocalDate.now())
+                        .direccionEntrega(dto.direccionEntrega())
+                        .notas(dto.notas())
+                        .build()));
 
         trackingService.registrarHitoSilencioso(dto.pedidoCodigo(), HitoTracking.despachado,
-                saved.getFechaDespacho(), "Despachado con " + dto.courier());
+                saved.getFechaDespacho(), "Despachado con " + saved.getCourier());
 
         Map<String, Object> body = new HashMap<>();
         body.put("estado", "despachado");
-        body.put("courier", dto.courier());
-        if (dto.guiaRemision() != null) body.put("guiaRemision", dto.guiaRemision());
+        body.put("courier", saved.getCourier());
+        if (saved.getGuiaRemision() != null) body.put("guiaRemision", saved.getGuiaRemision());
         try {
             salesClient.actualizarPedidoPorCodigo(dto.pedidoCodigo(), body);
-        } catch (Exception ignored) { }
+        } catch (Exception e) {
+            log.error("Fallo al sincronizar estado 'despachado' del pedido {} con sales-service: {}",
+                    dto.pedidoCodigo(), e.toString(), e);
+            throw new IllegalStateException(
+                    "No se pudo actualizar el estado del pedido " + dto.pedidoCodigo()
+                            + " en sales-service: " + e.getMessage(), e);
+        }
 
         return DespachoMapper.toDTO(saved);
     }
@@ -87,7 +95,13 @@ public class DespachoService {
 
         try {
             salesClient.actualizarPedidoPorCodigo(pedidoCodigo, Map.of("estado", "entregado"));
-        } catch (Exception ignored) { }
+        } catch (Exception e) {
+            log.error("Fallo al sincronizar estado 'entregado' del pedido {} con sales-service: {}",
+                    pedidoCodigo, e.toString(), e);
+            throw new IllegalStateException(
+                    "No se pudo actualizar el estado del pedido " + pedidoCodigo
+                            + " en sales-service: " + e.getMessage(), e);
+        }
 
         return DespachoMapper.toDTO(d);
     }

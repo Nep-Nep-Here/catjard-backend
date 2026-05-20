@@ -48,6 +48,14 @@ public class ClienteController {
         return ResponseEntity.created(URI.create("/api/clientes/" + creado.id())).body(creado);
     }
 
+    // Usado por identity-service durante el auto-registro (token de servicio, rol
+    // gerente). Crea el cliente CRM o reutiliza el existente por RUC y devuelve su id.
+    @PostMapping("/registro")
+    @PreAuthorize("hasAnyRole('vendedor','gerente')")
+    public ClienteDTO registro(@Valid @RequestBody CrearClienteDTO dto) {
+        return service.registrarOReutilizar(dto);
+    }
+
     @PatchMapping("/{id}")
     @PreAuthorize("hasAnyRole('vendedor','gerente')")
     public ClienteDTO actualizar(@PathVariable Long id, @Valid @RequestBody ActualizarClienteDTO dto) {

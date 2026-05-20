@@ -49,6 +49,20 @@ public class ClienteService {
         return ClienteMapper.toDTO(repo.save(cliente));
     }
 
+    // Auto-registro de cliente: si ya existe un ClienteCRM con ese RUC se reutiliza
+    // (mismo cliente B2B), si no se crea. Idempotente por RUC: evita duplicar empresas
+    // cuando varios usuarios de la misma empresa se registran.
+    @Transactional
+    public ClienteDTO registrarOReutilizar(CrearClienteDTO dto) {
+        return repo.findByRuc(dto.ruc())
+                .map(ClienteMapper::toDTO)
+                .orElseGet(() -> {
+                    ClienteCRM cliente = ClienteMapper.fromCrear(dto);
+                    cliente.setFechaAlta(LocalDate.now());
+                    return ClienteMapper.toDTO(repo.save(cliente));
+                });
+    }
+
     @Transactional
     public ClienteDTO actualizar(Long id, ActualizarClienteDTO dto) {
         ClienteCRM c = repo.findById(id)

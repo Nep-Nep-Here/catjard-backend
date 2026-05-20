@@ -47,6 +47,13 @@
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-openfeign</artifactId>
         </dependency>
+        <!-- Cliente HTTP OkHttp para Feign: el cliente por defecto (HttpURLConnection)
+             NO soporta el método PATCH, y SalesClient usa @PatchMapping. Sin esto el
+             PATCH a sales-service falla siempre (y el error se traga en silencio). -->
+        <dependency>
+            <groupId>io.github.openfeign</groupId>
+            <artifactId>feign-okhttp</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-loadbalancer</artifactId>

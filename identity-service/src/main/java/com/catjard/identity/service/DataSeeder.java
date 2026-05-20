@@ -36,6 +36,10 @@ public class DataSeeder implements CommandLineRunner {
                         .ruc("20512345671")
                         .telefono("+51 999 111 222")
                         .direccion("Av. Javier Prado 1234, San Isidro, Lima")
+                        // Enlaza con el ClienteCRM "Banco Sigma" (crm DataSeeder lo
+                        // siembra primero => id 1; sales siembra cotizaciones/pedidos
+                        // con clienteId=1). Sin esto el portal del cliente sale vacío.
+                        .clienteId(1L)
                         .build(),
                 Usuario.builder()
                         .email("vendedor@catjard.pe")

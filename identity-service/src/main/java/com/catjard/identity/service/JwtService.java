@@ -48,6 +48,24 @@ public class JwtService {
                 .compact();
     }
 
+    // Token de servicio (service-to-service): identity lo usa para llamar a crm-service
+    // durante el registro PÚBLICO (no hay JWT de usuario). Va firmado con el MISMO secreto
+    // HMAC compartido, con rol 'gerente' para pasar el @PreAuthorize de crm. Vida corta.
+    public String generateServiceToken() {
+        var now = new Date();
+        var exp = new Date(now.getTime() + 60_000); // 60 s, suficiente para la llamada
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("role", "gerente");
+        claims.put("name", "identity-service");
+        return Jwts.builder()
+                .subject("svc-identity@catjard")
+                .claims(claims)
+                .issuedAt(now)
+                .expiration(exp)
+                .signWith(key)
+                .compact();
+    }
+
     // Verifica firma y vencimiento. Si el token fue alterado o expiró, lanza JwtException.
     public Claims parse(String token) {
         return Jwts.parser()

@@ -25,8 +25,10 @@ public class TrackingController {
         return service.listar(codigo);
     }
 
+    // 'vendedor' incluido: PATCH /api/pedidos lo permite y el front encadena el
+    // hito de tracking automáticamente al cambiar estado; sin esto daba 403.
     @PostMapping("/pedido/{codigo}")
-    @PreAuthorize("hasAnyRole('produccion','gerente','almacen')")
+    @PreAuthorize("hasAnyRole('produccion','gerente','almacen','vendedor')")
     public TrackingEventoDTO marcar(@PathVariable String codigo, @Valid @RequestBody MarcarHitoDTO dto) {
         return service.marcar(codigo, dto);
     }

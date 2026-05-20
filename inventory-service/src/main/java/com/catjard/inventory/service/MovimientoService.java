@@ -8,6 +8,7 @@ import com.catjard.inventory.model.Movimiento;
 import com.catjard.inventory.model.TipoMovimiento;
 import com.catjard.inventory.repository.MovimientoRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MovimientoService {
@@ -59,7 +61,15 @@ public class MovimientoService {
             case salida  -> -Math.abs(dto.cantidad());
             case ajuste  -> dto.cantidad(); // puede ser negativo
         };
-        catalogClient.actualizarStock(dto.productoId(), Map.of("delta", delta));
+        try {
+            catalogClient.actualizarStock(dto.productoId(), Map.of("delta", delta));
+            log.info("Stock actualizado producto={} delta={} (movimiento id={})",
+                    dto.productoId(), delta, saved.getId());
+        } catch (Exception ex) {
+            log.error("Fallo actualizando stock en catalog-service producto={} delta={} (movimiento id={}): {}",
+                    dto.productoId(), delta, saved.getId(), ex.toString(), ex);
+            throw ex;
+        }
 
         return MovimientoMapper.toDTO(saved);
     }
