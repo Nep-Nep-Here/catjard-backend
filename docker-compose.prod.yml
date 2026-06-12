@@ -1,11 +1,11 @@
-# Override de PRODUCCIÓN (Droplet 4 GB, acceso por IP/HTTP).
+# Override de PRODUCCIÓN (Droplet 8 GB, acceso por IP/HTTP).
 # Uso en el servidor:
 #   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 #
 # Cambios vs. dev:
 #  - frontend en puerto 80 (http://IP), API relativa /api (nginx hace proxy al gateway)
 #  - eureka y gateway SIN puerto público (solo red interna)
-#  - JVMs con heap recortado + mem_limit para caber en 4 GB
+#  - JVMs con heap recortado + mem_limit para caber en 8 GB
 #  - contexto del front = ../frontend (layout del servidor: backend/ y frontend/ hermanos)
 
 # Recorte de memoria común a las 8 JVMs (Spring Boot + Eureka + Gateway).
@@ -57,6 +57,18 @@ services:
   operations-service:
     environment:
       <<: *jvm-tuning
+    mem_limit: 420m
+
+  solicitudes-service:
+    environment:
+      <<: *jvm-tuning
+      # Integracion Jira en produccion: definir estas variables en el .env del servidor.
+      JIRA_ENABLED: ${JIRA_ENABLED:-false}
+      JIRA_BASE_URL: ${JIRA_BASE_URL:-}
+      JIRA_EMAIL: ${JIRA_EMAIL:-}
+      JIRA_API_TOKEN: ${JIRA_API_TOKEN:-}
+      JIRA_PROJECT_KEY: ${JIRA_PROJECT_KEY:-SUP}
+      JIRA_ISSUE_TYPE: ${JIRA_ISSUE_TYPE:-Task}
     mem_limit: 420m
 
   frontend:

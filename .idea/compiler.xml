@@ -15,6 +15,7 @@
         <outputRelativeToContentRoot value="true" />
         <processorPath useClasspath="false">
           <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.46/lombok-1.18.46.jar" />
+          <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.46/lombok-1.18.46.jar" />
         </processorPath>
         <module name="sales-service" />
         <module name="operations-service" />
@@ -22,6 +23,15 @@
         <module name="identity-service" />
         <module name="crm-service" />
         <module name="catalog-service" />
+      </profile>
+      <profile name="Annotation profile for solicitudes-service" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="false">
+          <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.46/lombok-1.18.46.jar" />
+        </processorPath>
+        <module name="solicitudes-service" />
       </profile>
     </annotationProcessing>
   </component>
@@ -35,6 +45,7 @@
       <module name="inventory-service" options="-parameters" />
       <module name="operations-service" options="-parameters" />
       <module name="sales-service" options="-parameters" />
+      <module name="solicitudes-service" options="-parameters" />
     </option>
   </component>
 </project>

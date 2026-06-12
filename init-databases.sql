@@ -7,3 +7,4 @@ CREATE DATABASE catjard_crm;
 CREATE DATABASE catjard_sales;
 CREATE DATABASE catjard_inventory;
 CREATE DATABASE catjard_operations;
+CREATE DATABASE catjard_solicitudes;

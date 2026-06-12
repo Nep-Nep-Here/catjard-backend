@@ -99,6 +99,16 @@ spring:
               predicates:
                 - Path=/api/despachos/**
 
+            # solicitudes-service (mesa de ayuda / tickets + Jira)
+            - id: solicitudes
+              uri: lb://solicitudes-service
+              predicates:
+                - Path=/api/solicitudes/**
+            - id: cambios
+              uri: lb://solicitudes-service
+              predicates:
+                - Path=/api/cambios/**
+
 server:
   port: 8080
 

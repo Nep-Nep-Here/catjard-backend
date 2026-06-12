@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(where python *)",
+      "Bash(where py *)",
+      "Bash(where pwsh *)",
+      "Bash(C:\\\\Python314\\\\python.exe *)",
+      "PowerShell(python --version; python -c \"import docx; print\\('python-docx', docx.__version__\\)\" 2>&1)",
+      "PowerShell(python \"C:\\\\Users\\\\ADMIN\\\\Documents\\\\Universidad\\\\Integrador 2\\\\catjard\\\\generar_word_exposicion.py\")"
+    ]
+  }
+}

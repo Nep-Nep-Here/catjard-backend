@@ -108,6 +108,22 @@ services:
     networks: [catjard]
     restart: unless-stopped
 
+  solicitudes-service:
+    build: ./solicitudes-service
+    environment:
+      <<: *spring-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/catjard_solicitudes
+      # Integracion Jira (apagada por defecto; activar en prod con credenciales reales).
+      JIRA_ENABLED: ${JIRA_ENABLED:-false}
+      JIRA_BASE_URL: ${JIRA_BASE_URL:-}
+      JIRA_EMAIL: ${JIRA_EMAIL:-}
+      JIRA_API_TOKEN: ${JIRA_API_TOKEN:-}
+      JIRA_PROJECT_KEY: ${JIRA_PROJECT_KEY:-SUP}
+      JIRA_ISSUE_TYPE: ${JIRA_ISSUE_TYPE:-Task}
+    depends_on: *svc-depends
+    networks: [catjard]
+    restart: unless-stopped
+
   # ---------- Frontend (Vite build -> nginx) ----------
   frontend:
     build:
