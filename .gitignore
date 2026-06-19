@@ -3,6 +3,13 @@
 .env.*
 !.env.example
 
+# Perfiles locales con secretos reales (NUNCA versionar)
+**/application-local.properties
+run-local.ps1
+
+# Configuracion local de Claude (NUNCA versionar)
+.claude/
+
 # Build Maven
 target/
 */target/
