@@ -8,56 +8,58 @@
 #  - JVMs con heap recortado + mem_limit para caber en 8 GB
 #  - contexto del front = ../frontend (layout del servidor: backend/ y frontend/ hermanos)
 
-# Recorte de memoria común a las 8 JVMs (Spring Boot + Eureka + Gateway).
+# Recorte de memoria común a las 9 JVMs (7 microservicios + Eureka + Gateway).
 x-jvm-tuning: &jvm-tuning
-  JAVA_TOOL_OPTIONS: "-Xmx200m -XX:MaxMetaspaceSize=96m -Xss512k -XX:+UseSerialGC -XX:TieredStopAtLevel=1"
+  JAVA_TOOL_OPTIONS: "-Xmx300m -XX:MaxMetaspaceSize=256m -Xss512k -XX:+UseSerialGC -XX:TieredStopAtLevel=1"
 
 services:
   postgres:
+    ports:
+      - "127.0.0.1:5432:5432"   # acceso solo local (túnel SSH) para inspeccionar la BD
     mem_limit: 384m
 
   eureka-server:
     environment:
       <<: *jvm-tuning
     ports: !override []   # sin exposición pública (uso interno)
-    mem_limit: 420m
+    mem_limit: 700m
 
   api-gateway:
     environment:
       <<: *jvm-tuning
       FRONT_ORIGIN: "http://${SERVER_IP}"
     ports: !override []   # nginx hace proxy interno; no se expone al exterior
-    mem_limit: 420m
+    mem_limit: 700m
 
   identity-service:
     environment:
       <<: *jvm-tuning
-    mem_limit: 420m
+    mem_limit: 700m
 
   catalog-service:
     environment:
       <<: *jvm-tuning
-    mem_limit: 420m
+    mem_limit: 700m
 
   crm-service:
     environment:
       <<: *jvm-tuning
-    mem_limit: 420m
+    mem_limit: 700m
 
   sales-service:
     environment:
       <<: *jvm-tuning
-    mem_limit: 420m
+    mem_limit: 700m
 
   inventory-service:
     environment:
       <<: *jvm-tuning
-    mem_limit: 420m
+    mem_limit: 700m
 
   operations-service:
     environment:
       <<: *jvm-tuning
-    mem_limit: 420m
+    mem_limit: 700m
 
   solicitudes-service:
     environment:
@@ -70,7 +72,7 @@ services:
       JIRA_PROJECT_KEY: ${JIRA_PROJECT_KEY:-SCRUM}
       JIRA_CAMBIOS_PROJECT_KEY: ${JIRA_CAMBIOS_PROJECT_KEY:-CDCCJ}
       JIRA_ISSUE_TYPE: ${JIRA_ISSUE_TYPE:-Tarea}
-    mem_limit: 420m
+    mem_limit: 700m
 
   frontend:
     build:
