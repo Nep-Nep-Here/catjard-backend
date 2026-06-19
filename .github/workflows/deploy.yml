@@ -1,0 +1,67 @@
+name: CD — Deploy (referencia)
+
+# Despliegue de REFERENCIA (imita el "CD — Deploy to AWS ECS" del proyecto modelo).
+# NO despliega a ningun entorno real: el despliegue productivo de este proyecto se
+# hace al Droplet de DigitalOcean por SSH (ver DEPLOY.md). Este workflow queda como
+# plantilla del flujo CD: disparo MANUAL (workflow_dispatch) + matrix por servicio.
+#
+# Para convertirlo en un CD real: define los secrets necesarios (registry/SSH) y
+# reemplaza el paso "Deploy (REFERENCIA)" por los comandos comentados al final.
+
+on:
+  workflow_dispatch:
+    inputs:
+      entorno:
+        description: Entorno destino (referencia)
+        type: choice
+        options: [ staging, production ]
+        default: staging
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy — ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - api-gateway
+          - eureka-server
+          - identity-service
+          - catalog-service
+          - crm-service
+          - sales-service
+          - inventory-service
+          - operations-service
+          - solicitudes-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+
+      # Empaqueta el artefacto (prueba que el servicio compila para "desplegar").
+      - name: Empaquetar ${{ matrix.service }}
+        working-directory: ${{ matrix.service }}
+        run: mvn -B -ntp clean package -DskipTests
+
+      # Paso de despliegue de REFERENCIA: no ejecuta nada real, solo documenta el flujo.
+      - name: Deploy (REFERENCIA — no ejecuta despliegue real)
+        run: |
+          echo "::notice::[REFERENCIA] Desplegaria '${{ matrix.service }}' a '${{ inputs.entorno }}' (sha ${{ github.sha }})"
+          echo "Flujo real que iria aqui:"
+          echo "  1) docker build + tag de la imagen"
+          echo "  2) docker push a un registry (GHCR / ECR / Docker Hub)"
+          echo "  3) actualizar el servicio en el entorno destino"
+          echo ""
+          echo "--- Ejemplo real para AWS ECS (referencia del proyecto modelo) ---"
+          echo "  aws ecs update-service --cluster catjard --service ${{ matrix.service }} --force-new-deployment"
+          echo ""
+          echo "--- Ejemplo real para el Droplet de este proyecto (DigitalOcean por SSH) ---"
+          echo "  ssh root@\$SERVER_IP 'cd ~/catjard/backend && git pull && \\"
+          echo "    docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build ${{ matrix.service }}'"
