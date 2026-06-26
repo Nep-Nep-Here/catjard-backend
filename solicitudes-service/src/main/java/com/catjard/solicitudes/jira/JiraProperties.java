@@ -11,5 +11,6 @@ public record JiraProperties(
         String apiToken,
         String projectKey,
         String cambiosProjectKey,
+        String incidentesProjectKey,
         String issueType
 ) {}

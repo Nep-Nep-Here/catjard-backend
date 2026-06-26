@@ -14,6 +14,7 @@ public class JiraSyncScheduler {
 
     private final SolicitudService service;
     private final CambioService cambioService;
+    private final IncidenteService incidenteService;
 
     @Scheduled(initialDelay = 20_000, fixedDelayString = "${jira.sync-interval-ms:30000}")
     public void sincronizar() {
@@ -28,6 +29,12 @@ public class JiraSyncScheduler {
             if (n > 0) log.info("Sync Jira programado: {} cambio(s) actualizado(s).", n);
         } catch (Exception ex) {
             log.warn("Sync Jira (cambios) programado fallo: {}", ex.getMessage());
+        }
+        try {
+            int n = incidenteService.sincronizarConJira();
+            if (n > 0) log.info("Sync Jira programado: {} incidente(s) actualizado(s).", n);
+        } catch (Exception ex) {
+            log.warn("Sync Jira (incidentes) programado fallo: {}", ex.getMessage());
         }
     }
 }

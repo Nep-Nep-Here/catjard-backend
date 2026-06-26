@@ -2,6 +2,7 @@ package com.catjard.solicitudes.service;
 
 import com.catjard.solicitudes.model.*;
 import com.catjard.solicitudes.repository.CambioRepository;
+import com.catjard.solicitudes.repository.IncidenteRepository;
 import com.catjard.solicitudes.repository.SolicitudRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,11 +20,13 @@ public class DataSeeder implements CommandLineRunner {
 
     private final SolicitudRepository repo;
     private final CambioRepository cambioRepo;
+    private final IncidenteRepository incidenteRepo;
 
     @Override
     public void run(String... args) {
         seedSolicitudes();
         seedCambios();
+        seedIncidentes();
     }
 
     private void seedSolicitudes() {
@@ -100,5 +103,49 @@ public class DataSeeder implements CommandLineRunner {
                         .build()
         ));
         log.info("DataSeeder: 3 cambios de ejemplo creados.");
+    }
+
+    private void seedIncidentes() {
+        if (incidenteRepo.count() > 0) return;
+        log.info("DataSeeder: sembrando incidentes de ejemplo...");
+
+        int year = LocalDate.now().getYear();
+        incidenteRepo.saveAll(List.of(
+                // Ejemplo del docente: impacto alto + urgencia alta => prioridad CRITICA.
+                Incidente.builder()
+                        .codigo("INC-" + year + "-001").fecha(LocalDate.now())
+                        .titulo("Portal institucional caido")
+                        .descripcion("El portal institucional no responde; los usuarios no pueden acceder.")
+                        .origen(OrigenIncidente.monitoreo).servicioAfectado("Portal institucional")
+                        .categoria(CategoriaIncidente.aplicaciones)
+                        .impacto(Nivel.alto).urgencia(Nivel.alto).prioridad(PrioridadIncidente.critica)
+                        .estado(EstadoIncidente.en_resolucion)
+                        .responsable("Equipo Backend").solicitanteEmail("gerente@demo.com")
+                        .diagnostico("Saturacion de conexiones a la BD detras del API Gateway.")
+                        .build(),
+                // Ejemplo del docente: impacto bajo + urgencia baja => prioridad BAJA.
+                Incidente.builder()
+                        .codigo("INC-" + year + "-002").fecha(LocalDate.now())
+                        .titulo("Impresora de oficina no funciona")
+                        .descripcion("La impresora de la oficina de ventas no imprime.")
+                        .origen(OrigenIncidente.usuario).servicioAfectado("Impresora de oficina")
+                        .categoria(CategoriaIncidente.infraestructura)
+                        .impacto(Nivel.bajo).urgencia(Nivel.bajo).prioridad(PrioridadIncidente.baja)
+                        .estado(EstadoIncidente.registrado)
+                        .responsable("Soporte TI").solicitanteEmail("vendedor@demo.com")
+                        .build(),
+                // impacto alto + urgencia media => prioridad ALTA.
+                Incidente.builder()
+                        .codigo("INC-" + year + "-003").fecha(LocalDate.now())
+                        .titulo("Intentos de acceso no autorizado al login")
+                        .descripcion("Se detecta un pico de intentos fallidos de inicio de sesion en identity-service.")
+                        .origen(OrigenIncidente.monitoreo).servicioAfectado("identity-service")
+                        .categoria(CategoriaIncidente.seguridad)
+                        .impacto(Nivel.alto).urgencia(Nivel.medio).prioridad(PrioridadIncidente.alta)
+                        .estado(EstadoIncidente.en_diagnostico)
+                        .responsable("Seguridad").solicitanteEmail("gerente@demo.com")
+                        .build()
+        ));
+        log.info("DataSeeder: 3 incidentes de ejemplo creados.");
     }
 }

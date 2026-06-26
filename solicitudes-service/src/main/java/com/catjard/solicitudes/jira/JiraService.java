@@ -1,6 +1,7 @@
 package com.catjard.solicitudes.jira;
 
 import com.catjard.solicitudes.model.Cambio;
+import com.catjard.solicitudes.model.Incidente;
 import com.catjard.solicitudes.model.Solicitud;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -116,6 +117,57 @@ public class JiraService {
         String url = key != null ? props.baseUrl().replaceAll("/+$", "") + "/browse/" + key : null;
         log.info("Jira: issue {} creado para cambio {}", key, c.getCodigo());
         return new JiraIssue(key, url);
+    }
+
+    // Crea un issue en Jira a partir de un Incidente (gestion de incidentes -> tablero GDICJ).
+    // Devuelve null si la integracion esta apagada.
+    public JiraIssue crearIssue(Incidente i) {
+        if (!props.enabled()) {
+            log.debug("Jira deshabilitado: no se crea issue para incidente {}", i.getCodigo());
+            return null;
+        }
+
+        String summary = "[INC " + i.getPrioridad().name().toUpperCase() + "] " + i.getTitulo();
+        String cuerpo = "Incidente " + i.getCodigo()
+                + "\nServicio afectado: " + (i.getServicioAfectado() != null ? i.getServicioAfectado() : "-")
+                + "\nCategoria: " + i.getCategoria().name()
+                + "\nOrigen: " + i.getOrigen().name()
+                + "\nImpacto: " + i.getImpacto().name()
+                + "\nUrgencia: " + i.getUrgencia().name()
+                + "\nPrioridad: " + i.getPrioridad().name()
+                + "\nResponsable: " + (i.getResponsable() != null ? i.getResponsable() : "-")
+                + "\nReportante: " + i.getSolicitanteEmail()
+                + "\n\n" + (i.getDescripcion() != null ? i.getDescripcion() : "");
+
+        Map<String, Object> fields = Map.of(
+                "project", Map.of("key", incidentesProjectKey()),
+                "summary", summary,
+                "issuetype", Map.of("name", props.issueType()),
+                "labels", List.of("catjard", "incidente", i.getCategoria().name()),
+                "description", adf(cuerpo)
+        );
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> resp = http.post()
+                .uri("/rest/api/3/issue")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of("fields", fields))
+                .retrieve()
+                .body(Map.class);
+
+        String key = resp != null ? String.valueOf(resp.get("key")) : null;
+        String url = key != null ? props.baseUrl().replaceAll("/+$", "") + "/browse/" + key : null;
+        log.info("Jira: issue {} creado para incidente {}", key, i.getCodigo());
+        return new JiraIssue(key, url);
+    }
+
+    // Proyecto Jira para incidentes (tablero GDICJ); cae al de cambios o solicitudes si falta.
+    private String incidentesProjectKey() {
+        if (props.incidentesProjectKey() != null && !props.incidentesProjectKey().isBlank())
+            return props.incidentesProjectKey();
+        if (props.cambiosProjectKey() != null && !props.cambiosProjectKey().isBlank())
+            return props.cambiosProjectKey();
+        return props.projectKey();
     }
 
     // Agrega un comentario al issue (para reflejar cambios de estado o respuestas).
