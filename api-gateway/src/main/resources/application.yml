@@ -112,6 +112,10 @@ spring:
               uri: lb://solicitudes-service
               predicates:
                 - Path=/api/incidentes/**
+            - id: eventos
+              uri: lb://solicitudes-service
+              predicates:
+                - Path=/api/eventos/**
 
 server:
   port: 8080

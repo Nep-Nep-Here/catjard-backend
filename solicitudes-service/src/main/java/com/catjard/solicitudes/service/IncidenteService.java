@@ -79,6 +79,29 @@ public class IncidenteService {
         return IncidenteMapper.toDTO(saved);
     }
 
+    // Fase 2 (Identificacion de Eventos): un evento error/critical del monitoreo se convierte
+    // automaticamente en incidente. NO abre issue en Jira: eso lo decide el operador con el
+    // boton "Enviar a Jira" del panel de eventos (solo para los criticos).
+    @Transactional
+    public Incidente crearDesdeMonitoreo(String titulo, String descripcion, CategoriaIncidente categoria,
+                                         Nivel impacto, Nivel urgencia) {
+        Incidente i = Incidente.builder()
+                .codigo(generarCodigo())
+                .fecha(LocalDate.now())
+                .titulo(titulo)
+                .descripcion(descripcion)
+                .origen(OrigenIncidente.monitoreo)
+                .servicioAfectado("Droplet DigitalOcean (infraestructura Cat Jard)")
+                .categoria(categoria)
+                .impacto(impacto)
+                .urgencia(urgencia)
+                .prioridad(calcularPrioridad(impacto, urgencia))
+                .estado(EstadoIncidente.registrado)
+                .solicitanteEmail("monitoreo@catjard.local")
+                .build();
+        return repo.save(i);
+    }
+
     // Gestionar: avanzar el flujo, reclasificar y registrar diagnostico/solucion.
     @Transactional
     public IncidenteDTO actualizar(Long id, ActualizarIncidenteDTO dto, String quien) {

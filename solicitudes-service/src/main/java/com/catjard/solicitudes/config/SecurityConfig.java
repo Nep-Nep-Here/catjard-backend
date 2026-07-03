@@ -34,7 +34,10 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
-                                "/actuator/**"
+                                "/actuator/**",
+                                // El dispatch interno a /error no re-autentica en la cadena
+                                // stateless: sin esto, toda excepcion sale como 403 vacio.
+                                "/error"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
