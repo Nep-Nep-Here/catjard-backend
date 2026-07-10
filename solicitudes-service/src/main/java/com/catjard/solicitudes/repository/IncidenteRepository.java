@@ -12,4 +12,6 @@ public interface IncidenteRepository extends JpaRepository<Incidente, Long> {
     List<Incidente> findAllByOrderByFechaDescIdDesc();
     List<Incidente> findByEstadoOrderByFechaDescIdDesc(EstadoIncidente estado);
     List<Incidente> findByCodigoStartingWithOrderByCodigoDesc(String prefijo);
+    // Incidentes con contador RTO: base de las metricas de cumplimiento del plan.
+    List<Incidente> findByRtoDeadlineIsNotNull();
 }

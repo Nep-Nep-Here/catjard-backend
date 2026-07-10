@@ -29,6 +29,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Envio publico de solicitudes desde la web (sin login), como el form de leads.
                         .requestMatchers(POST, "/api/solicitudes").permitAll()
+                        // Registro de respaldos del cron del Droplet: no hay usuario/JWT;
+                        // el controlador valida el token compartido X-Backup-Token.
+                        .requestMatchers(POST, "/api/continuidad/respaldos/script").permitAll()
                         .requestMatchers(
                                 "/v3/api-docs",
                                 "/v3/api-docs/**",

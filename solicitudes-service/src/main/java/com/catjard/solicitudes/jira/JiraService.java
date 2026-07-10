@@ -122,6 +122,12 @@ public class JiraService {
     // Crea un issue en Jira a partir de un Incidente (gestion de incidentes -> tablero GDICJ).
     // Devuelve null si la integracion esta apagada.
     public JiraIssue crearIssue(Incidente i) {
+        return crearIssue(i, null);
+    }
+
+    // Variante con la estrategia documentada de la Base de Conocimiento: la
+    // referencia (codigo + titulo del articulo aplicable) viaja en el ticket.
+    public JiraIssue crearIssue(Incidente i, String estrategiaKB) {
         if (!props.enabled()) {
             log.debug("Jira deshabilitado: no se crea issue para incidente {}", i.getCodigo());
             return null;
@@ -137,6 +143,9 @@ public class JiraService {
                 + "\nPrioridad: " + i.getPrioridad().name()
                 + "\nResponsable: " + (i.getResponsable() != null ? i.getResponsable() : "-")
                 + "\nReportante: " + i.getSolicitanteEmail()
+                + (estrategiaKB != null
+                        ? "\n\nEstrategia documentada (Base de Conocimiento): " + estrategiaKB
+                        : "")
                 + "\n\n" + (i.getDescripcion() != null ? i.getDescripcion() : "");
 
         Map<String, Object> fields = Map.of(

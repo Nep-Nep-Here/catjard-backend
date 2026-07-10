@@ -12,6 +12,7 @@ public record ActualizarIncidenteDTO(
         @Size(max = 10) String urgencia,
         @Size(max = 150) String responsable,
         @Size(max = 200) String servicioAfectado,
+        Long servicioId,                      // (re)asociar al catalogo de continuidad: recalcula el deadline RTO
         String diagnostico,
         String solucion,
         String evidencia

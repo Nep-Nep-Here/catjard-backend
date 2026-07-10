@@ -10,6 +10,7 @@ public record CrearIncidenteDTO(
         String descripcion,
         @NotBlank @Size(max = 15) String origen,        // usuario / monitoreo / mesa_ayuda
         @Size(max = 200) String servicioAfectado,
+        Long servicioId,                                // servicio del catalogo de continuidad: activa el contador RTO
         @NotBlank @Size(max = 20) String categoria,     // infraestructura / aplicaciones / base_datos / redes / seguridad / documentacion / otros
         @NotBlank @Size(max = 10) String impacto,       // bajo / medio / alto
         @NotBlank @Size(max = 10) String urgencia,      // bajo / medio / alto

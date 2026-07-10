@@ -109,6 +109,46 @@ public class DigitalOceanService {
         return v != null ? redondear(v) : null;
     }
 
+    // ------------------- Backups / Snapshots del Droplet -------------------
+
+    // Imagen de respaldo del Droplet en DO. 'automatico' = backup semanal/diario
+    // del plan de Backups; false = snapshot tomado a mano desde el panel.
+    public record ImagenRespaldo(String id, String nombre, Instant creado,
+                                 Double sizeGb, boolean automatico) {}
+
+    // Backups automaticos + snapshots manuales del Droplet (Gestion de Continuidad:
+    // se sincronizan al registro de respaldos del plan).
+    public List<ImagenRespaldo> respaldosDroplet(String dropletId) {
+        List<ImagenRespaldo> out = new ArrayList<>();
+        out.addAll(leerImagenes("/v2/droplets/" + dropletId + "/backups", "backups", true));
+        out.addAll(leerImagenes("/v2/droplets/" + dropletId + "/snapshots", "snapshots", false));
+        return out;
+    }
+
+    private List<ImagenRespaldo> leerImagenes(String path, String key, boolean automatico) {
+        Map<String, Object> resp = http.get()
+                .uri(path + "?per_page=50")
+                .retrieve()
+                .body(Map.class);
+        if (resp == null || !(resp.get(key) instanceof List<?> imagenes)) return List.of();
+        List<ImagenRespaldo> out = new ArrayList<>();
+        for (Object o : imagenes) {
+            if (!(o instanceof Map<?, ?> img)) continue;
+            Instant creado;
+            try { creado = Instant.parse(String.valueOf(img.get("created_at"))); }
+            catch (Exception e) { creado = Instant.now(); }
+            Double sizeGb = null;
+            try { sizeGb = Double.parseDouble(String.valueOf(img.get("size_gigabytes"))); }
+            catch (Exception ignored) { }
+            Object nombre = img.get("name");
+            out.add(new ImagenRespaldo(
+                    String.valueOf(img.get("id")),
+                    nombre != null ? String.valueOf(nombre) : "imagen sin nombre",
+                    creado, sizeGb, automatico));
+        }
+        return out;
+    }
+
     // Politicas de alerta configuradas en el panel de DO (para mostrarlas en el front).
     @SuppressWarnings("unchecked")
     public List<Map<String, Object>> politicasAlerta() {

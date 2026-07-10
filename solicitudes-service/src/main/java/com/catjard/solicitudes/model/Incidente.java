@@ -88,6 +88,24 @@ public class Incidente {
     @Column(name = "fecha_cierre")
     private LocalDateTime fechaCierre;
 
+    // ----- Continuidad del servicio: contador RTO -----
+    // Al asociar el incidente a un servicio del catalogo se congela su RTO y se
+    // fija el deadline; al resolver se mide si se cumplio (trazabilidad del plan).
+    @Column(name = "servicio_id")
+    private Long servicioId;
+
+    @Column(name = "servicio_nombre", length = 120)
+    private String servicioNombre;
+
+    @Column(name = "rto_minutos")
+    private Integer rtoMinutos;            // RTO objetivo al momento de asociar
+
+    @Column(name = "rto_deadline")
+    private LocalDateTime rtoDeadline;     // creacion + RTO
+
+    @Column(name = "cumplio_rto")
+    private Boolean cumplioRto;            // null = aun sin medir
+
     // ----- Integracion con Jira (tablero GDICJ) -----
     @Column(name = "jira_issue_key", length = 40)
     private String jiraIssueKey;

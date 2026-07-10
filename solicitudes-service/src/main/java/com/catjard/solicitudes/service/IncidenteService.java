@@ -7,6 +7,7 @@ import com.catjard.solicitudes.jira.JiraService;
 import com.catjard.solicitudes.mapper.IncidenteMapper;
 import com.catjard.solicitudes.model.*;
 import com.catjard.solicitudes.repository.IncidenteRepository;
+import com.catjard.solicitudes.repository.ServicioCriticoRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -23,6 +24,8 @@ import java.util.Optional;
 public class IncidenteService {
 
     private final IncidenteRepository repo;
+    private final ServicioCriticoRepository servicioRepo;
+    private final BaseConocimientoService baseConocimiento;
     private final JiraService jira;
 
     @Transactional(readOnly = true)
@@ -64,10 +67,17 @@ public class IncidenteService {
                 .evidencia(dto.evidencia())
                 .build();
 
+        // Continuidad: asociar al catalogo activa el contador RTO del incidente.
+        if (dto.servicioId() != null) asociarServicio(i, dto.servicioId(), LocalDateTime.now());
+
         Incidente saved = repo.save(i);
 
         try {
-            JiraService.JiraIssue issue = jira.crearIssue(saved);
+            // La estrategia documentada de la KB viaja en el ticket (si existe una aplicable).
+            String estrategiaKB = baseConocimiento
+                    .referenciaParaJira(saved.getCategoria(), saved.getServicioId())
+                    .orElse(null);
+            JiraService.JiraIssue issue = jira.crearIssue(saved, estrategiaKB);
             if (issue != null) {
                 saved.setJiraIssueKey(issue.key());
                 saved.setJiraUrl(issue.url());
@@ -99,6 +109,12 @@ public class IncidenteService {
                 .estado(EstadoIncidente.registrado)
                 .solicitanteEmail("monitoreo@catjard.local")
                 .build();
+
+        // Los incidentes del monitoreo golpean al Droplet completo: se cuelgan del
+        // servicio de infraestructura del catalogo para activar su contador RTO.
+        servicioRepo.findFirstByTipoAndActivoTrueOrderByIdAsc(TipoServicio.infraestructura)
+                .ifPresent(s -> asociarServicio(i, s.getId(), LocalDateTime.now()));
+
         return repo.save(i);
     }
 
@@ -127,6 +143,12 @@ public class IncidenteService {
         if (dto.categoria() != null && !dto.categoria().isBlank()) i.setCategoria(parseCategoria(dto.categoria()));
         if (dto.responsable() != null) i.setResponsable(dto.responsable());
         if (dto.servicioAfectado() != null) i.setServicioAfectado(dto.servicioAfectado());
+        // (Re)asociar al catalogo de continuidad: el deadline se recalcula desde
+        // la creacion del incidente (el RTO corre desde que inicio la interrupcion).
+        if (dto.servicioId() != null) {
+            asociarServicio(i, dto.servicioId(), i.getFechaCreacion());
+            cambio.append("Servicio -> ").append(i.getServicioNombre()).append(". ");
+        }
         if (dto.diagnostico() != null) i.setDiagnostico(dto.diagnostico());
         if (dto.solucion() != null) i.setSolucion(dto.solucion());
         if (dto.evidencia() != null) i.setEvidencia(dto.evidencia());
@@ -184,7 +206,32 @@ public class IncidenteService {
         if (nuevo == EstadoIncidente.reabierto) {
             i.setFechaResolucion(null);
             i.setFechaCierre(null);
+            i.setCumplioRto(null);  // se volvera a medir al resolver de nuevo
         }
+        medirCumplimientoRto(i);
+    }
+
+    // Continuidad: congela nombre y RTO del servicio en el incidente y fija el
+    // deadline (asi el historial no cambia si luego se edita el catalogo).
+    private void asociarServicio(Incidente i, Long servicioId, LocalDateTime desde) {
+        ServicioCritico s = servicioRepo.findById(servicioId)
+                .orElseThrow(() -> new IllegalArgumentException("Servicio critico no encontrado: " + servicioId));
+        i.setServicioId(s.getId());
+        i.setServicioNombre(s.getNombre());
+        i.setRtoMinutos(s.getRtoMinutos());
+        i.setRtoDeadline(s.getRtoMinutos() != null && desde != null
+                ? desde.plusMinutes(s.getRtoMinutos()) : null);
+        if (i.getServicioAfectado() == null || i.getServicioAfectado().isBlank()) {
+            i.setServicioAfectado(s.getNombre());
+        }
+    }
+
+    // Medicion del RTO: si el incidente tiene deadline y ya se resolvio,
+    // cumplio = se resolvio antes (o justo) del deadline.
+    private void medirCumplimientoRto(Incidente i) {
+        if (i.getRtoDeadline() == null || i.getFechaResolucion() == null) return;
+        if (i.getCumplioRto() != null) return; // ya medido (no se re-mide al cerrar)
+        i.setCumplioRto(!i.getFechaResolucion().isAfter(i.getRtoDeadline()));
     }
 
     // Matriz de priorizacion ITIL: Prioridad = f(Impacto, Urgencia).

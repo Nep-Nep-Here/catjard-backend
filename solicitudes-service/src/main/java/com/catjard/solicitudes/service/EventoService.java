@@ -38,6 +38,7 @@ public class EventoService {
     private final EventoRepository repo;
     private final IncidenteRepository incidenteRepo;
     private final IncidenteService incidenteService;
+    private final BaseConocimientoService baseConocimiento;
     private final DigitalOceanService digitalOcean;
     private final DigitalOceanProperties props;
     private final JiraService jira;
@@ -218,7 +219,11 @@ public class EventoService {
         Incidente inc = incidenteRepo.findById(e.getIncidenteId())
                 .orElseThrow(() -> new IllegalStateException("Incidente vinculado no encontrado: " + e.getIncidenteId()));
 
-        JiraService.JiraIssue issue = jira.crearIssue(inc);
+        // La estrategia documentada de la KB viaja en el ticket (si existe una aplicable).
+        String estrategiaKB = baseConocimiento
+                .referenciaParaJira(inc.getCategoria(), inc.getServicioId())
+                .orElse(null);
+        JiraService.JiraIssue issue = jira.crearIssue(inc, estrategiaKB);
         if (issue == null) {
             throw new IllegalStateException("La integracion con Jira esta deshabilitada.");
         }
