@@ -1,5 +1,7 @@
 package com.catjard.solicitudes.service;
 
+import com.catjard.solicitudes.dto.IncidenteDTO;
+import com.catjard.solicitudes.mapper.IncidenteMapper;
 import com.catjard.solicitudes.model.CategoriaIncidente;
 import com.catjard.solicitudes.model.Incidente;
 import com.catjard.solicitudes.model.MonitoreoEstado;
@@ -82,6 +84,22 @@ public class ReinicioMonitorService {
         estadoRepo.save(estado);
         log.warn("Monitoreo reinicio: DETECTADO reinicio del Droplet -> incidente {}.", inc.getCodigo());
         return Optional.of(inc);
+    }
+
+    // Simulacion para demos: abre el incidente de reinicio SIN reiniciar el servidor y SIN
+    // tocar el estado real del boot time (no interfiere con la deteccion automatica en curso).
+    @Transactional
+    public IncidenteDTO simularReinicio() {
+        Incidente inc = incidenteService.crearDesdeMonitoreo(
+                "[SIMULACION] El servidor se reinicio",
+                "Reinicio SIMULADO desde el panel (demostracion): el servidor NO se reinicio "
+                        + "realmente.\n\nEn un reinicio real, el monitoreo lee el uptime del host "
+                        + "(/proc/uptime), detecta que el arranque cambio y abre este mismo incidente "
+                        + "asociado a Infraestructura, activando su contador RTO.",
+                CategoriaIncidente.infraestructura,
+                Nivel.alto, Nivel.alto);
+        log.info("Simulacion de reinicio -> incidente {}.", inc.getCodigo());
+        return IncidenteMapper.toDTO(inc);
     }
 
     // Uptime del HOST en segundos desde /proc/uptime. Null si no existe (Windows/local) o falla.

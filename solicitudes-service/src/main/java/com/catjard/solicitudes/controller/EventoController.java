@@ -2,9 +2,11 @@ package com.catjard.solicitudes.controller;
 
 import com.catjard.solicitudes.dto.ActualizarEventoDTO;
 import com.catjard.solicitudes.dto.EventoDTO;
+import com.catjard.solicitudes.dto.IncidenteDTO;
 import com.catjard.solicitudes.dto.MetricaActualDTO;
 import com.catjard.solicitudes.dto.SimularEventoDTO;
 import com.catjard.solicitudes.service.EventoService;
+import com.catjard.solicitudes.service.ReinicioMonitorService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +28,7 @@ import java.util.Optional;
 public class EventoController {
 
     private final EventoService service;
+    private final ReinicioMonitorService reinicioMonitor;
 
     // Panel de eventos: lista con filtros por severidad o estado.
     @GetMapping
@@ -67,6 +70,14 @@ public class EventoController {
     @PreAuthorize("hasAnyRole('vendedor','almacen','produccion','gerente')")
     public ResponseEntity<EventoDTO> simular(@Valid @RequestBody SimularEventoDTO dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.simular(dto));
+    }
+
+    // Simula un reinicio del servidor (demo): abre el incidente automatico de continuidad
+    // sin reiniciar el Droplet de verdad. Util para sustentar el escenario "se corto la luz".
+    @PostMapping("/simular-reinicio")
+    @PreAuthorize("hasAnyRole('vendedor','almacen','produccion','gerente')")
+    public ResponseEntity<IncidenteDTO> simularReinicio() {
+        return ResponseEntity.status(HttpStatus.CREATED).body(reinicioMonitor.simularReinicio());
     }
 
     // Boton "Enviar a Jira": escala el incidente vinculado al tablero GDICJ (criticos).
