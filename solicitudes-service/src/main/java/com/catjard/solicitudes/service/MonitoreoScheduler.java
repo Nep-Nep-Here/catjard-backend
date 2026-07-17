@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 public class MonitoreoScheduler {
 
     private final EventoService eventoService;
+    private final ReinicioMonitorService reinicioMonitor;
 
     @Scheduled(initialDelay = 30_000, fixedDelayString = "${monitoreo.sync-interval-ms:60000}")
     public void monitorear() {
@@ -22,6 +23,13 @@ public class MonitoreoScheduler {
             if (n > 0) log.info("Monitoreo DO: {} evento(s) nuevo(s) registrado(s).", n);
         } catch (Exception ex) {
             log.warn("Monitoreo DO programado fallo: {}", ex.getMessage());
+        }
+        // Deteccion de reinicio del servidor (independiente de DigitalOcean: lee el uptime
+        // del host). Abre un incidente si el Droplet se reinicio desde el ultimo ciclo.
+        try {
+            reinicioMonitor.detectarReinicio();
+        } catch (Exception ex) {
+            log.warn("Deteccion de reinicio fallo: {}", ex.getMessage());
         }
     }
 }
