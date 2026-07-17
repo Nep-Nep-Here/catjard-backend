@@ -20,5 +20,6 @@ public record PedidoDTO(
         String estado,
         String courier,
         String guiaRemision,
+        String procesadoPor,
         List<ItemDTO> items
 ) {}

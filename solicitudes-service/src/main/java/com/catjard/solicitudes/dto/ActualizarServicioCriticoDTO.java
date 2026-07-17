@@ -4,7 +4,9 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
 
-// Edicion parcial de un servicio del catalogo: solo se aplican los campos no nulos.
+// Edicion de un servicio del catalogo: los campos no nulos se aplican. Excepcion:
+// rpoMinutos se aplica tal cual (incluido null) para poder QUITAR el objetivo RPO
+// desde el formulario (servicio sin datos propios -> sale del semaforo).
 public record ActualizarServicioCriticoDTO(
         @Size(max = 120) String nombre,
         String descripcion,

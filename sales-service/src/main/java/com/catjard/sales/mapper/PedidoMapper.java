@@ -31,6 +31,7 @@ public class PedidoMapper {
                 p.getEstado() != null ? p.getEstado().name() : null,
                 p.getCourier(),
                 p.getGuiaRemision(),
+                p.getProcesadoPor(),
                 items
         );
     }

@@ -2,12 +2,15 @@ package com.catjard.solicitudes.controller;
 
 import com.catjard.solicitudes.dto.*;
 import com.catjard.solicitudes.model.OrigenRespaldo;
+import com.catjard.solicitudes.service.BackupExportService;
 import com.catjard.solicitudes.service.ContinuidadService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -23,6 +26,7 @@ import java.util.List;
 public class ContinuidadController {
 
     private final ContinuidadService service;
+    private final BackupExportService backupExport;
 
     // Token compartido con el cron de respaldos del Droplet (no es un JWT de usuario).
     @Value("${continuidad.backup-token:}")
@@ -113,6 +117,19 @@ public class ContinuidadController {
     public ResponseEntity<RespaldoDTO> registrarRespaldo(@Valid @RequestBody RegistrarRespaldoDTO dto) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(service.registrarRespaldo(dto, OrigenRespaldo.manual));
+    }
+
+    // Descarga la "1" de la regla 3-2-1: un ZIP con el pg_dump de las 7 BDs al equipo del
+    // usuario (copia externa fuera del servidor). Registra el respaldo al terminar. Si algo
+    // falla, la excepcion sale antes del body -> el GlobalExceptionHandler responde JSON.
+    @GetMapping("/respaldos/exportar")
+    @PreAuthorize("hasRole('gerente')")
+    public ResponseEntity<byte[]> exportarLocal() {
+        BackupExportService.Export exp = backupExport.exportarTodas();
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + exp.filename() + "\"")
+                .contentType(MediaType.parseMediaType("application/zip"))
+                .body(exp.zip());
     }
 
     // Registro automatico del cron de respaldos del Droplet: autentica con el

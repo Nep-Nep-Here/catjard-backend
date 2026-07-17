@@ -590,6 +590,58 @@ public class DataSeeder implements CommandLineRunner {
                                 - Jira (tablero GDICJ) es la fuente de verdad del estado: el panel sincroniza cada 30 s.
                                 - Al resolver: registrar diagnostico (causa raiz), solucion y evidencia. Si el caso
                                   es repetible, documentarlo como runbook en esta Base de Conocimiento.""")
+                        .autor("Equipo TI Cat Jard").vistas(0).build(),
+                ArticuloKB.builder()
+                        .codigo("KB-" + year + "-011")
+                        .titulo("Runbook: restaurar la base de datos desde un respaldo (consola)")
+                        .categoria(CategoriaKB.runbook)
+                        .resumen("Recuperar una BD (o las 7) desde un dump pg_dump por consola: en local, en el Droplet (docker exec) y desde la copia local descargada.")
+                        .categoriaIncidente(CategoriaIncidente.aplicaciones)
+                        .servicioId(bdId)
+                        .contenido("""
+                                ESCENARIO
+                                Se perdieron o corrompieron datos (borrado accidental, fallo de disco, migracion).
+                                Hay que restaurar desde un respaldo pg_dump (.dump, formato custom).
+
+                                DE DONDE SALE EL RESPALDO
+                                - Dump diario automatico: C:\\catjard-backups\\dumps\\ (o el cron del Droplet).
+                                - Copia local (boton "Descargar copia local"): un ZIP con un .dump por cada una de
+                                  las 7 BDs (catjard_identity, _catalog, _crm, _sales, _inventory, _operations,
+                                  _solicitudes). Descomprimir el ZIP para obtener los .dump.
+
+                                RESTAURAR UNA BD EN LOCAL (Windows, consola)
+                                Se restaura primero a una BD NUEVA para no pisar la productiva:
+                                1. Crear la BD destino:
+                                   psql -U postgres -c "CREATE DATABASE catjard_sales_restore;"
+                                2. Restaurar (formato custom -> pg_restore):
+                                   pg_restore -U postgres -d catjard_sales_restore --no-owner --no-acl catjard_sales.dump
+                                3. Verificar:
+                                   psql -U postgres -d catjard_sales_restore -c "SELECT count(*) FROM pedidos;"
+                                4. Swap consciente (apagar antes el microservicio que usa esa BD):
+                                   ALTER DATABASE catjard_sales RENAME TO catjard_sales_old;
+                                   ALTER DATABASE catjard_sales_restore RENAME TO catjard_sales;
+                                   Levantar el servicio y, ya confirmado, DROP DATABASE catjard_sales_old.
+
+                                RESTAURAR EN LA NUBE (Droplet, por SSH — Postgres corre en un contenedor)
+                                El cliente pg_restore vive DENTRO del contenedor de la BD; se le pasa el .dump por STDIN:
+                                1. Subir el .dump al Droplet (scp) o descomprimir alli el ZIP de la copia local.
+                                2. Crear la BD destino:
+                                   docker exec -i catjard-postgres-1 psql -U postgres -c "CREATE DATABASE catjard_sales_restore;"
+                                3. Restaurar pasando el archivo por STDIN:
+                                   docker exec -i catjard-postgres-1 pg_restore -U postgres -d catjard_sales_restore --no-owner --no-acl < catjard_sales.dump
+                                4. Verificar y hacer el swap igual que en local (apagar antes con: docker compose ... stop <servicio>).
+
+                                RESTAURAR LAS 7 BDs (desastre mayor)
+                                Repetir el procedimiento con cada .dump del ZIP. Son independientes; conviene empezar
+                                por catjard_identity para recuperar primero el login.
+
+                                PROBAR EL PLAN (importante)
+                                Un backup que nunca se restauro no es un backup. Al menos una vez al mes: restaurar el
+                                ultimo dump de identity a una BD throwaway, contar filas y dropearla.
+
+                                NOTA
+                                Los .dump son formato custom (pg_dump -F c): se restauran con pg_restore, permiten
+                                restore selectivo (--table=<tabla>) y no pisan owners/permisos (--no-owner --no-acl).""")
                         .autor("Equipo TI Cat Jard").vistas(0).build()
         ));
 

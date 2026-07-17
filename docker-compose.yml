@@ -113,6 +113,11 @@ services:
     environment:
       <<: *spring-env
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/catjard_solicitudes
+      # Boton "Descargar copia local" (respaldo 3-2-1): en Docker el pg_dump esta en
+      # /usr/bin (lo instala el Dockerfile) y la BD vive en el contenedor 'postgres',
+      # no en localhost. En local-Windows (sin Docker) aplican los defaults del codigo.
+      BACKUP_PG_DUMP_PATH: /usr/bin/pg_dump
+      BACKUP_DB_HOST: postgres
       # Integracion Jira (apagada por defecto; activar en prod con credenciales reales).
       JIRA_ENABLED: ${JIRA_ENABLED:-false}
       JIRA_BASE_URL: ${JIRA_BASE_URL:-}

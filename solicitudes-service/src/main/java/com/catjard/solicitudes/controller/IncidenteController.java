@@ -52,6 +52,13 @@ public class IncidenteController {
         return java.util.Map.of("actualizadas", service.sincronizarConJira());
     }
 
+    // Boton "Enviar a Jira": abre el issue en GDICJ para un incidente que aun no lo tiene.
+    @PostMapping("/{id}/enviar-jira")
+    @PreAuthorize("hasRole('gerente')")
+    public IncidenteDTO enviarAJira(@PathVariable Long id) {
+        return service.enviarAJira(id);
+    }
+
     // Diagnosticar / resolver / cerrar y avanzar el flujo: gerencia (Mesa de Ayuda / Sistemas).
     @PatchMapping("/{id}")
     @PreAuthorize("hasRole('gerente')")

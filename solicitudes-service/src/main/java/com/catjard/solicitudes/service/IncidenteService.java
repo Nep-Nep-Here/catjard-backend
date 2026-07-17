@@ -164,6 +164,29 @@ public class IncidenteService {
         return IncidenteMapper.toDTO(i);
     }
 
+    // Boton "Enviar a Jira" del detalle: abre el issue en GDICJ para los incidentes que
+    // aun no lo tienen (los que vienen del monitoreo, o aquellos cuya creacion de issue
+    // fallo al registrarse). Sin esto quedaban huerfanos del tablero y sin reintento.
+    @Transactional
+    public IncidenteDTO enviarAJira(Long id) {
+        Incidente i = repo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Incidente no encontrado: " + id));
+        if (i.getJiraIssueKey() != null && !i.getJiraIssueKey().isBlank()) {
+            throw new IllegalStateException("El incidente " + i.getCodigo()
+                    + " ya fue enviado a Jira (" + i.getJiraIssueKey() + ").");
+        }
+        String estrategiaKB = baseConocimiento
+                .referenciaParaJira(i.getCategoria(), i.getServicioId())
+                .orElse(null);
+        JiraService.JiraIssue issue = jira.crearIssue(i, estrategiaKB);
+        if (issue == null) {
+            throw new IllegalStateException("La integracion con Jira esta deshabilitada.");
+        }
+        i.setJiraIssueKey(issue.key());
+        i.setJiraUrl(issue.url());
+        return IncidenteMapper.toDTO(i);
+    }
+
     @Transactional
     public void eliminar(Long id) {
         if (!repo.existsById(id)) throw new IllegalArgumentException("Incidente no encontrado: " + id);
@@ -180,8 +203,13 @@ public class IncidenteService {
             if (i.getJiraIssueKey() == null || i.getJiraIssueKey().isBlank()) continue;
             try {
                 JiraService.JiraEstado je = jira.obtenerEstado(i.getJiraIssueKey());
-                if (je == null || je.nombre() == null) continue;
+                if (je == null) continue;
                 EstadoIncidente nuevo = mapearEstadoJira(je.nombre());
+                // El nombre de la columna manda, pero si el tablero usa un nombre propio
+                // ("Completado", "Terminado"...) caemos a la categoria del estado. Sin esto
+                // un incidente completado en Jira no se enteraba y su contador RTO seguia
+                // corriendo para siempre.
+                if (nuevo == null) nuevo = mapearCategoriaJira(je.categoria());
                 if (nuevo == null || nuevo == i.getEstado()) continue;
                 aplicarEstado(i, nuevo);
                 actualizadas++;
@@ -208,6 +236,12 @@ public class IncidenteService {
             i.setFechaCierre(null);
             i.setCumplioRto(null);  // se volvera a medir al resolver de nuevo
         }
+        if (nuevo == EstadoIncidente.cancelado) {
+            // Falso positivo: no hubo interrupcion real que medir. Se apaga el contador
+            // y el incidente sale de las metricas de continuidad (ni cumplido ni incumplido).
+            i.setFechaCierre(LocalDateTime.now());
+            i.setCumplioRto(null);
+        }
         medirCumplimientoRto(i);
     }
 
@@ -229,6 +263,9 @@ public class IncidenteService {
     // Medicion del RTO: si el incidente tiene deadline y ya se resolvio,
     // cumplio = se resolvio antes (o justo) del deadline.
     private void medirCumplimientoRto(Incidente i) {
+        // Un incidente cancelado no se mide aunque arrastre una fecha de resolucion
+        // previa (se resolvio y despues se descarto): quedaria fuera de las metricas.
+        if (i.getEstado() == EstadoIncidente.cancelado) return;
         if (i.getRtoDeadline() == null || i.getFechaResolucion() == null) return;
         if (i.getCumplioRto() != null) return; // ya medido (no se re-mide al cerrar)
         i.setCumplioRto(!i.getFechaResolucion().isAfter(i.getRtoDeadline()));
@@ -266,6 +303,14 @@ public class IncidenteService {
             case "cancelado", "descartado" -> EstadoIncidente.cancelado;
             default -> null;
         };
+    }
+
+    // Fallback cuando el nombre de la columna no esta mapeado: Jira clasifica todo
+    // estado en 'new' | 'indeterminate' | 'done'. Solo 'done' es inequivoco y es el
+    // que importa (cierra el incidente y congela el contador RTO); las otras dos no
+    // distinguen diagnostico de resolucion, asi que no tocamos el incidente.
+    private EstadoIncidente mapearCategoriaJira(String categoria) {
+        return "done".equalsIgnoreCase(categoria) ? EstadoIncidente.cerrado : null;
     }
 
     // ----------------- helpers -----------------

@@ -73,6 +73,7 @@ public class PedidoService {
                 .igv(cot.getIgv())
                 .total(cot.getTotal())
                 .estado(EstadoPedido.por_iniciar)   // arranca en Kanban "Por iniciar"
+                .procesadoPor(currentUserName())    // quien aprobó la cotización originó el pedido
                 .build();
 
         for (CotizacionItem ci : cot.getItems()) {
@@ -109,6 +110,12 @@ public class PedidoService {
         if (dto.voucherFecha() != null)            p.setVoucherFecha(dto.voucherFecha());
         if (dto.courier() != null)                 p.setCourier(dto.courier());
         if (dto.guiaRemision() != null)            p.setGuiaRemision(dto.guiaRemision());
+
+        // Solo un cambio real de estado cuenta como "procesar": un re-PATCH que
+        // toca courier o guía no debe reescribir a quién atribuye Auditoría.
+        if (p.getEstado() != previo) {
+            p.setProcesadoPor(currentUserName());
+        }
 
         // Al DESPACHAR (transición listo→despachado, no re-PATCH): descuenta stock
         // registrando una salida de inventario por cada ítem (best-effort).

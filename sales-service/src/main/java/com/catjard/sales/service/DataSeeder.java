@@ -90,6 +90,7 @@ public class DataSeeder implements CommandLineRunner {
                 .subtotal(new BigDecimal("7950.00")).igv(new BigDecimal("1431.00")).total(new BigDecimal("9381.00"))
                 .voucherUrl("voucher-bcs-040.pdf").voucherFecha(LocalDate.of(2026, 4, 17))
                 .estado(EstadoPedido.en_produccion)
+                .procesadoPor("Carlos Rivas")
                 .build();
         p1.getItems().add(itemPed(p1, 8L, 300, "18.70", "Grabado Laser"));
         p1.getItems().add(itemPed(p1, 7L, 500, "4.68",  "Grabado Laser"));
@@ -103,6 +104,7 @@ public class DataSeeder implements CommandLineRunner {
                 .voucherUrl("voucher-bcs-021.pdf").voucherFecha(LocalDate.of(2026, 3, 5))
                 .estado(EstadoPedido.entregado)
                 .courier("Olva Courier").guiaRemision("GR-2026-001182")
+                .procesadoPor("Carlos Rivas")
                 .build();
         p2.getItems().add(itemPed(p2, 5L, 400, "14.04", "Serigrafia"));
 

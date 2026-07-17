@@ -67,6 +67,9 @@ public class Pedido {
     @Column(name = "guia_remision", length = 60)
     private String guiaRemision;
 
+    @Column(name = "procesado_por", length = 120)
+    private String procesadoPor;
+
     @Column(name = "fecha_creacion", nullable = false, updatable = false)
     private LocalDateTime fechaCreacion;
 

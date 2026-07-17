@@ -73,7 +73,10 @@ public class ContinuidadService {
         if (dto.criticidad() != null && !dto.criticidad().isBlank()) s.setCriticidad(parseCriticidad(dto.criticidad()));
         if (dto.prioridadRecuperacion() != null) s.setPrioridadRecuperacion(dto.prioridadRecuperacion());
         if (dto.rtoMinutos() != null) s.setRtoMinutos(dto.rtoMinutos());
-        if (dto.rpoMinutos() != null) s.setRpoMinutos(dto.rpoMinutos());
+        // El RPO se aplica tal cual venga (incluido null): el formulario de edicion envia
+        // el payload completo, asi que dejar el campo vacio DEBE quitarle el objetivo RPO al
+        // servicio (p.ej. un microservicio sin datos propios) y sacarlo del semaforo.
+        s.setRpoMinutos(dto.rpoMinutos());
         if (dto.estrategiaContinuidad() != null) s.setEstrategiaContinuidad(dto.estrategiaContinuidad());
         if (dto.activo() != null) s.setActivo(dto.activo());
         return ContinuidadMapper.toDTO(s);
@@ -255,6 +258,9 @@ public class ContinuidadService {
 
         LocalDateTime ahora = LocalDateTime.now();
         long activosVencidos = conRto.stream()
+                // Los cancelados son falsos positivos: su contador esta apagado y no
+                // hay servicio que recuperar, asi que no son un vencido "activo".
+                .filter(i -> i.getEstado() != EstadoIncidente.cancelado)
                 .filter(i -> i.getCumplioRto() == null && i.getFechaResolucion() == null
                         && i.getRtoDeadline().isBefore(ahora))
                 .count();
